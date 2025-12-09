@@ -1,0 +1,71 @@
+# Default prompt sequence template for building a web scraper
+# This demonstrates conditional logic and browser automation
+
+prompts:
+  - id: "step1"
+    start: true
+    prompt: |
+      Create a Python script for a simple web scraper that:
+      1. Uses the requests library to fetch a webpage
+      2. Uses BeautifulSoup to parse HTML
+      3. Extracts all links from the page
+      4. Prints the links to the console
+      
+      Provide the complete, runnable code.
+    conditions:
+      - if: "response contains 'error'"
+        then: "step_error"
+      - if: "response contains 'def '"
+        then: "step2"
+    next: "step2"
+  
+  - id: "step2"
+    prompt: |
+      Now enhance the scraper to:
+      1. Save the links to a CSV file
+      2. Include the link text and URL
+      3. Add error handling for network requests
+      
+      Provide the updated complete code.
+    conditions:
+      - if: "response contains 'csv'"
+        then: "step3"
+      - if: "response contains 'error'"
+        then: "step_error"
+    next: "step3"
+  
+  - id: "step3"
+    prompt: |
+      Add browser automation using Selenium to:
+      1. Navigate to the first link found
+      2. Take a screenshot
+      3. Extract the page title
+      
+      Provide the complete enhanced code.
+    browser_actions:
+      - type: "navigate"
+        params:
+          url: "https://example.com"
+      - type: "wait"
+        params:
+          time: 2
+      - type: "screenshot"
+        params:
+          filepath: "scraper_screenshot.png"
+    conditions:
+      - if: "response contains 'selenium'"
+        then: "step_complete"
+      - if: "response contains 'error'"
+        then: "step_error"
+  
+  - id: "step_error"
+    prompt: |
+      An error occurred in the previous step. Please analyze the error and provide a corrected version of the code.
+    conditions:
+      - if: "response contains 'def '"
+        then: "step2"
+  
+  - id: "step_complete"
+    prompt: |
+      The web scraper is complete. Please provide a summary of what was built and any recommendations for further improvements.
+

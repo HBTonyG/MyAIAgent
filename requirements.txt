@@ -1,0 +1,23 @@
+# Dependencies for the self-improving AI agent
+# Install with: pip install -r requirements.txt
+
+# OpenAI API client
+openai>=1.0.0
+
+# Selenium for browser automation
+selenium>=4.0.0
+
+# YAML parsing
+pyyaml>=6.0
+
+# HTTP requests (used by OpenAI client, but listed for completeness)
+requests>=2.28.0
+
+# Note: sqlite3 is included in Python standard library, no installation needed
+
+# Additional notes:
+# - ChromeDriver is required for Selenium with Brave browser
+#   Install on macOS: brew install chromedriver
+#   Or download from: https://chromedriver.chromium.org/
+# - Make sure ChromeDriver version matches your Brave browser version
+

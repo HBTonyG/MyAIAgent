@@ -1,0 +1,24 @@
+# Agent configuration file
+# You can set these values here or use environment variables
+
+# Grok (xAI) API Key (required)
+# Set via environment variable: export GROK_API_KEY="your-key-here"
+# Or export XAI_API_KEY="your-key-here"
+# Or uncomment and set below:
+# api_key: "your-grok-api-key-here"
+
+# Model to use (optional, default: grok-4-latest)
+# model: "grok-4-latest"
+
+# Brave browser path (optional, will auto-detect on macOS)
+# brave_path: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+
+# Run browser in headless mode (optional, default: false)
+# headless: false
+
+# Default model to use (optional, default: gpt-4)
+# model: "gpt-4"
+
+# Default prompts config file (optional)
+# default_config: "config/prompts.yaml"
+
