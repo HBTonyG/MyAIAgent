@@ -4,8 +4,8 @@
 # OpenAI API client
 openai>=1.0.0
 
-# Selenium for browser automation
-selenium>=4.0.0
+# Selenium for browser automation (4.6+ includes automatic driver management)
+selenium>=4.6.0
 
 # YAML parsing
 pyyaml>=6.0
@@ -16,8 +16,7 @@ requests>=2.28.0
 # Note: sqlite3 is included in Python standard library, no installation needed
 
 # Additional notes:
-# - ChromeDriver is required for Selenium with Brave browser
-#   Install on macOS: brew install chromedriver
-#   Or download from: https://chromedriver.chromium.org/
-# - Make sure ChromeDriver version matches your Brave browser version
+# - Selenium 4.6+ automatically manages ChromeDriver - no manual installation needed!
+#   It will download and configure the driver automatically on first use.
+# - Brave browser should be installed for browser automation features.
 

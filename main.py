@@ -8,9 +8,9 @@ SETUP INSTRUCTIONS:
 1. Install dependencies:
    pip install -r requirements.txt
 
-2. Install ChromeDriver (required for Brave browser automation):
-   brew install chromedriver
-   Or download from: https://chromedriver.chromium.org/
+2. Browser Setup (optional):
+   - Install Brave browser if using browser automation
+   - ChromeDriver is automatically managed by Selenium - no installation needed!
 
 3. Set Grok (xAI) API key:
    export GROK_API_KEY="your-api-key-here"

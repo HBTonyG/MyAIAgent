@@ -51,7 +51,11 @@ class BrowserAutomation:
         return None
     
     def _initialize_driver(self):
-        """Initialize Selenium WebDriver with Brave options."""
+        """Initialize Selenium WebDriver with Brave options.
+        
+        Uses Selenium 4's built-in driver management to automatically handle ChromeDriver,
+        avoiding manual installation and Gatekeeper warnings.
+        """
         chrome_options = Options()
         
         if self.brave_path:
@@ -67,14 +71,16 @@ class BrowserAutomation:
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
         
-        # Try to initialize driver
+        # Try to initialize driver with Selenium 4's automatic driver management
         try:
+            # Selenium 4.6+ automatically downloads and manages ChromeDriver
+            # No manual installation needed!
             self.driver = webdriver.Chrome(options=chrome_options)
             self.driver.implicitly_wait(10)
         except Exception as e:
             raise Exception(f"Failed to initialize Brave browser: {str(e)}\n"
-                          f"Make sure ChromeDriver is installed and compatible with your Brave version.\n"
-                          f"Install via: brew install chromedriver")
+                          f"Selenium will automatically download ChromeDriver on first run.\n"
+                          f"If issues persist, check your internet connection.")
     
     def navigate(self, url: str) -> bool:
         """

@@ -19,11 +19,9 @@ A Python 3 application for a self-improving AI agent that automates interactions
    pip install -r requirements.txt
    ```
 
-2. **Install ChromeDriver** (required for Selenium with Brave):
-   ```bash
-   brew install chromedriver
-   ```
-   Or download from [ChromeDriver downloads](https://chromedriver.chromium.org/)
+2. **Browser Setup** (optional, only needed for browser automation):
+   - Install Brave browser if you want to use browser automation features
+   - ChromeDriver is automatically managed by Selenium 4.6+ - no manual installation needed!
 
 3. **Set your Grok (xAI) API key:**
    ```bash

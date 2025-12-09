@@ -32,11 +32,8 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
 - **Software:**
   - Python 3.10+ (install via Homebrew: `brew install python`)
   - Dependencies: Run `pip install -r requirements.txt` (installs `openai`, `selenium`, `pyyaml`, `requests`)
-  - ChromeDriver: Required for Selenium with Brave browser
-    ```bash
-    brew install chromedriver
-    ```
-  - Browser: Brave browser installed (auto-detected on macOS)
+  - Browser: Brave browser installed (auto-detected on macOS) - only needed for browser automation features
+  - **Note:** ChromeDriver is automatically managed by Selenium 4.6+ - no manual installation needed!
 - **API Key:** 
   - Sign up for Grok API at [console.x.ai](https://console.x.ai)
   - Set it as an environment variable: `export GROK_API_KEY='your-key'`
@@ -331,10 +328,11 @@ Start small to test basics, then build complexity. Each stage adds layers like c
   - The agent has built-in exponential backoff for rate limits
 
 - **Selenium/Browser Failures:**
-  - Update ChromeDriver: `brew upgrade chromedriver`
   - Ensure Brave browser is installed
+  - ChromeDriver is automatically managed - Selenium will download it on first use
   - Check browser path in `config/agent_config.yaml` if auto-detection fails
   - Try running browser in headless mode: set `headless: true` in config
+  - Ensure you have internet connection for first-time driver download
 
 - **Slow Runs:**
   - Reduce sequence length initially
