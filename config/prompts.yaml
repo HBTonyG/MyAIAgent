@@ -12,6 +12,11 @@ prompts:
       4. Prints the links to the console
       
       Provide the complete, runnable code.
+    file_operations:
+      - type: "write"
+        target: "output/scraper_v1.py"
+        extract_code: true
+        language: "python"
     conditions:
       - if: "response contains 'error'"
         then: "step_error"
@@ -27,6 +32,11 @@ prompts:
       3. Add error handling for network requests
       
       Provide the updated complete code.
+    file_operations:
+      - type: "write"
+        target: "output/scraper_v2.py"
+        extract_code: true
+        language: "python"
     conditions:
       - if: "response contains 'csv'"
         then: "step3"
@@ -42,6 +52,11 @@ prompts:
       3. Extract the page title
       
       Provide the complete enhanced code.
+    file_operations:
+      - type: "write"
+        target: "output/scraper_final.py"
+        extract_code: true
+        language: "python"
     browser_actions:
       - type: "navigate"
         params:

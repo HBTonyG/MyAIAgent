@@ -17,6 +17,7 @@ from api_client import APIClient
 from browser_automation import BrowserAutomation
 from config_parser import ConfigParser
 from self_improvement import SelfImprovement
+from cursor_integration import CursorIntegration
 
 
 class Agent:
@@ -42,6 +43,7 @@ class Agent:
         self.brave_path = brave_path
         self.headless = headless
         self.self_improvement = SelfImprovement(self.database, self.api_client)
+        self.cursor = CursorIntegration()
         self.session_id = None
         self.is_paused = False
     
@@ -166,6 +168,61 @@ class Agent:
                 )
                 print(f"Browser action error: {str(e)}")
     
+    def _execute_file_operations(self, operations: list, response_text: str):
+        """Execute file operations from prompt configuration."""
+        for operation in operations:
+            op_type = operation.get('type')
+            target = operation.get('target')
+            extract_code = operation.get('extract_code', False)
+            language = operation.get('language', 'python')
+            
+            try:
+                if op_type == 'write':
+                    if not target:
+                        print("Warning: File operation missing target file")
+                        continue
+                    
+                    if extract_code:
+                        # Extract code from response
+                        success = self.cursor.apply_code_changes(
+                            response_text,
+                            target,
+                            language
+                        )
+                    else:
+                        # Write full response
+                        success = self.cursor.write_file(target, response_text)
+                    
+                    if success:
+                        print(f"✓ Written to file: {target}")
+                        self.database.log_browser_action(
+                            self.session_id,
+                            "file_write",
+                            {"file": target, "extracted_code": extract_code},
+                            success=True
+                        )
+                    else:
+                        print(f"✗ Failed to write file: {target}")
+                        self.database.log_error(
+                            self.session_id,
+                            "file_write_error",
+                            f"Failed to write {target}"
+                        )
+                
+                elif op_type == 'read':
+                    # Read file for context (future use)
+                    content = self.cursor.read_file(target)
+                    if content:
+                        self.config_parser.set_variable(f"file_{target}", content)
+            
+            except Exception as e:
+                self.database.log_error(
+                    self.session_id,
+                    "file_operation_error",
+                    str(e)
+                )
+                print(f"File operation error: {str(e)}")
+    
     def run(self) -> bool:
         """
         Run the agent's prompt sequence.
@@ -233,6 +290,11 @@ class Agent:
                 )
                 
                 print(f"Response: {response_text[:200]}...")
+                
+                # Handle file operations if specified
+                file_operations = self.config_parser.get_file_operations(current_prompt)
+                if file_operations:
+                    self._execute_file_operations(file_operations, response_text)
                 
                 # Determine next prompt based on conditions
                 context = {

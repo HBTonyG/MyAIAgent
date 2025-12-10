@@ -20,73 +20,124 @@ A Python 3 application for a self-improving AI agent that automates interactions
 
 ## Installation
 
-1. **Install Python dependencies:**
+### Package Installation (Recommended)
+
+**Prerequisites:**
+- Python 3.10 or higher (3.11+ recommended)
+- Check your Python version: `python3 --version`
+
+If you don't have Python 3.10+, install it:
+- **macOS:** `brew install python` or download from [python.org](https://www.python.org/downloads/)
+- **Linux:** Use your package manager or [python.org](https://www.python.org/downloads/)
+
+1. **Clone or download this repository:**
    ```bash
-   pip install -r requirements.txt
+   cd ~/Code/MyAIAgent
    ```
 
-2. **Browser Setup** (optional, only needed for browser automation):
+2. **Install the package in editable mode:**
+   
+   If you have multiple Python versions, use the specific version:
+   ```bash
+   python3.11 -m pip install -e .
+   ```
+   
+   Or if `python3` points to 3.10+:
+   ```bash
+   python3 -m pip install -e .
+   ```
+   
+   **Note:** If you get a "Python version" error, ensure you're using Python 3.10+ by specifying the version explicitly (e.g., `python3.11` or `python3.10`).
+   
+   This installs the `myaiagent` command globally, allowing you to run it from any directory.
+
+3. **Browser Setup** (optional, only needed for browser automation):
    - Install Brave browser if you want to use browser automation features
    - ChromeDriver is automatically managed by Selenium 4.6+ - no manual installation needed!
 
-3. **Set your Grok (xAI) API key:**
+4. **Set your Grok (xAI) API key:**
    ```bash
    export GROK_API_KEY="your-api-key-here"
    ```
-   Or use `XAI_API_KEY` environment variable, or add it to `config/agent_config.yaml`
+   Or use `XAI_API_KEY` environment variable, or add it to `~/.zshrc` for persistence:
+   ```bash
+   echo 'export GROK_API_KEY="your-api-key-here"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
    
    Get your API key from [console.x.ai](https://console.x.ai)
 
+### Alternative: Direct Script Execution
+
+If you prefer not to install as a package, you can run the script directly:
+
+**Prerequisites:** Python 3.10 or higher (3.11+ recommended)
+
+1. **Install Python dependencies:**
+   ```bash
+   cd ~/Code/MyAIAgent
+   python3 -m pip install -r requirements.txt
+   ```
+   (Use `python3.11 -m pip` if you have multiple Python versions)
+
+2. **Run from the MyAIAgent directory:**
+   ```bash
+   python3 main.py [command]
+   ```
+
 ## Usage
+
+After package installation, you can run `myaiagent` from any directory:
 
 ### Start an agent session:
 ```bash
-python main.py start [config_file]
+myaiagent start [config_file]
 ```
 
 Example:
 ```bash
-python main.py start config/prompts.yaml
+myaiagent start config/prompts.yaml
 ```
 
 ### View recent logs:
 ```bash
-python main.py logs [--limit N]
+myaiagent logs [--limit N]
 ```
 
 ### Review pending improvements:
 ```bash
-python main.py improvements
+myaiagent improvements
 ```
 
 ### Approve an improvement:
 ```bash
-python main.py approve [improvement_id]
+myaiagent approve [improvement_id]
 ```
 
 ### Reject an improvement:
 ```bash
-python main.py reject [improvement_id]
+myaiagent reject [improvement_id]
 ```
 
 ### Pause current session:
 ```bash
-python main.py pause
+myaiagent pause
 ```
 
 ### Resume paused session:
 ```bash
-python main.py resume
+myaiagent resume
 ```
 
 ### Improve a project iteratively:
 ```bash
-python main.py improve [config_file]
+myaiagent improve [config_file] [--project-path PATH]
 ```
 
-Example:
+Example (from your project directory):
 ```bash
-python main.py improve config/project_improvement.yaml
+cd ~/Code/MyProject
+myaiagent improve
 ```
 
 This will analyze your project, assess quality, and automatically improve it through iterative cycles until quality standards are met.
@@ -152,7 +203,7 @@ The agent can analyze and automatically improve existing projects in Cursor:
 
 ```bash
 # From your project directory
-python3 ~/Code/MyAIAgent/main.py improve
+myaiagent improve
 ```
 
 ### How It Works
@@ -214,8 +265,8 @@ To adjust the budget, modify the `token_budget` section in your config file. Set
    # Navigate to your project directory
    cd ~/Code/MyProject
    
-   # Run the improvement agent
-   python3 ~/Code/MyAIAgent/main.py improve
+   # Run the improvement agent (works from any directory after installation)
+   myaiagent improve
    ```
 5. **Agent analyzes and improves**: The agent reads Cursor-generated files and applies improvements
 6. **Review in Cursor**: Files are automatically updated and visible in Cursor
@@ -224,15 +275,15 @@ To adjust the budget, modify the `token_budget` section in your config file. Set
 ### Command Options
 
 ```bash
-python3 ~/Code/MyAIAgent/main.py improve [config_file] [--project-path PATH]
+myaiagent improve [config_file] [--project-path PATH]
 ```
 
-- `config_file` (optional): Path to improvement config file. If not specified, uses `config/project_improvement.yaml` from MyAIAgent directory
+- `config_file` (optional): Path to improvement config file. If not specified, uses default `config/project_improvement.yaml` from package installation
 - `--project-path PATH` (optional): Path to project directory. Defaults to current directory if not specified
 
 **Example with options:**
 ```bash
-python3 ~/Code/MyAIAgent/main.py improve --project-path /path/to/my/project
+myaiagent improve --project-path /path/to/my/project
 ```
 
 ## Architecture

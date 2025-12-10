@@ -116,6 +116,34 @@ class Database:
             )
         """)
         
+        # Quality scores table (for iterative improvement)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS quality_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                iteration_number INTEGER NOT NULL,
+                overall_score REAL,
+                scores_json TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+            )
+        """)
+        
+        # Improvement iterations table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS improvement_iterations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                iteration_number INTEGER NOT NULL,
+                quality_score_before REAL,
+                quality_score_after REAL,
+                improvements_applied TEXT,
+                files_modified TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+            )
+        """)
+        
         self.conn.commit()
     
     def create_session(self, session_id: str, config_file: Optional[str] = None) -> int:
@@ -353,6 +381,41 @@ class Database:
         """)
         row = cursor.fetchone()
         return row['session_id'] if row else None
+    
+    def save_quality_score(self, session_id: str, iteration_number: int,
+                          overall_score: float, scores_json: str):
+        """Save quality score for an iteration."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO quality_scores (session_id, iteration_number, overall_score, scores_json)
+            VALUES (?, ?, ?, ?)
+        """, (session_id, iteration_number, overall_score, scores_json))
+        self.conn.commit()
+    
+    def save_iteration(self, session_id: str, iteration_number: int,
+                      quality_before: float, quality_after: float,
+                      improvements_applied: str, files_modified: str):
+        """Save improvement iteration record."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO improvement_iterations 
+            (session_id, iteration_number, quality_score_before, quality_score_after, 
+             improvements_applied, files_modified)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (session_id, iteration_number, quality_before, quality_after,
+              improvements_applied, files_modified))
+        self.conn.commit()
+    
+    def get_iteration_history(self, session_id: str) -> List[Dict[str, Any]]:
+        """Get iteration history for a session."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM improvement_iterations
+            WHERE session_id = ?
+            ORDER BY iteration_number ASC
+        """, (session_id,))
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     
     def close(self):
         """Close database connection."""

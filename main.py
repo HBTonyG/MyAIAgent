@@ -41,6 +41,46 @@ from improvement_engine import ImprovementEngine
 from api_client import APIClient
 
 
+def _find_myaiagent_dir():
+    """
+    Find MyAIAgent installation directory.
+    Works for both installed package and direct script execution.
+    """
+    # Try to find config directory using sysconfig (for installed packages)
+    try:
+        import sysconfig
+        # Get site-packages or user site-packages where package is installed
+        for scheme in ['purelib', 'platlib']:
+            try:
+                site_packages = sysconfig.get_paths()[scheme]
+                # Check for config directory in site-packages
+                config_path = os.path.join(site_packages, 'config')
+                if os.path.exists(config_path):
+                    # Return the parent directory (site-packages root)
+                    return site_packages
+            except:
+                continue
+    except Exception:
+        pass
+    
+    # Try to find via importlib (for editable installs)
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec('main')
+        if spec and spec.origin:
+            main_dir = os.path.dirname(os.path.abspath(spec.origin))
+            # Check if config directory exists relative to main module
+            config_path = os.path.join(main_dir, 'config')
+            if os.path.exists(config_path):
+                return main_dir
+    except Exception:
+        pass
+    
+    # Fallback: Use __file__ location (direct script execution)
+    main_py_path = os.path.abspath(__file__)
+    return os.path.dirname(main_py_path)
+
+
 def load_config() -> dict:
     """Load agent configuration from config file or environment."""
     config = {
@@ -51,10 +91,21 @@ def load_config() -> dict:
         'model': os.getenv('GROK_MODEL', 'grok-4-latest')
     }
     
-    # Try to load from agent_config.yaml if it exists
+    # Try to load from agent_config.yaml (relative to package directory)
+    myaiagent_dir = _find_myaiagent_dir()
+    agent_config_path = os.path.join(myaiagent_dir, 'config', 'agent_config.yaml')
+    
+    # Also check current directory (user override)
     if os.path.exists('config/agent_config.yaml'):
+        agent_config_path = 'config/agent_config.yaml'
+    elif os.path.exists(agent_config_path):
+        pass  # Use package config
+    else:
+        agent_config_path = None
+    
+    if agent_config_path and os.path.exists(agent_config_path):
         import yaml
-        with open('config/agent_config.yaml', 'r') as f:
+        with open(agent_config_path, 'r') as f:
             file_config = yaml.safe_load(f) or {}
             config.update(file_config)
     
@@ -71,9 +122,18 @@ def cmd_start(args):
     
     config_file = args.config_file or config.get('default_config', 'config/prompts.yaml')
     
+    # Resolve config file path - check current directory first, then package directory
     if not os.path.exists(config_file):
-        print(f"Error: Config file not found: {config_file}")
-        sys.exit(1)
+        myaiagent_dir = _find_myaiagent_dir()
+        potential_config = os.path.join(myaiagent_dir, config_file)
+        if os.path.exists(potential_config):
+            config_file = potential_config
+        elif not os.path.exists(config_file):
+            print(f"Error: Config file not found: {config_file}")
+            print(f"Tried: {config_file}")
+            if os.path.exists(potential_config):
+                print(f"Tried: {potential_config}")
+            sys.exit(1)
     
     agent = Agent(
         config_path=config_file,
@@ -245,14 +305,6 @@ def cmd_resume(args):
     
     finally:
         db.close()
-
-
-def _find_myaiagent_dir():
-    """Find MyAIAgent installation directory."""
-    # Get the directory where main.py is located
-    main_py_path = os.path.abspath(__file__)
-    myaiagent_dir = os.path.dirname(main_py_path)
-    return myaiagent_dir
 
 
 def cmd_improve(args):

@@ -208,6 +208,19 @@ class ConfigParser:
         """Get browser actions for a prompt if any."""
         return prompt.get('browser_actions', [])
     
+    def get_file_operations(self, prompt: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Get file operations for a prompt if any.
+        
+        Expected format:
+        file_operations:
+          - type: "write"
+            target: "output/scraper.py"
+            extract_code: true
+            language: "python"
+        """
+        return prompt.get('file_operations', [])
+    
     def reload(self):
         """Reload configuration from file."""
         self.config = self._load_config()

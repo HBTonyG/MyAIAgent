@@ -38,17 +38,43 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
   - Sign up for Grok API at [console.x.ai](https://console.x.ai)
   - Set it as an environment variable: `export GROK_API_KEY='your-key'`
   - Or use `XAI_API_KEY` environment variable
-- **Skills:** Basic terminal use (e.g., running `python main.py start`). No coding needed for training, but editing YAML files helps.
+- **Skills:** Basic terminal use (e.g., running `myaiagent start`). No coding needed for training, but editing YAML files helps.
 
 ---
 
 ## 3. Initial Setup
 
-1. **Install dependencies:**
+1. **Verify Python version (3.10+ required):**
+   ```bash
+   python3 --version
+   ```
+   If you see Python 3.9 or lower, you need to upgrade. On macOS:
+   ```bash
+   brew install python
+   ```
+
+2. **Install the package:**
    ```bash
    cd ~/Code/MyAIAgent
-   pip install -r requirements.txt
    ```
+   
+   If you have multiple Python versions, use the specific version:
+   ```bash
+   python3.11 -m pip install -e .
+   ```
+   
+   Or if `python3` points to 3.10+:
+   ```bash
+   python3 -m pip install -e .
+   ```
+   
+   **Troubleshooting:** If you get a "Python version" error, ensure you're using Python 3.10+ by checking which Python `pip` is using:
+   ```bash
+   pip --version  # Shows which Python pip uses
+   ```
+   Use `python3.10 -m pip` or `python3.11 -m pip` instead of just `pip`.
+   
+   This installs the `myaiagent` command globally, allowing you to use it from any directory.
 
 2. **Set your Grok API key:**
    ```bash
@@ -59,6 +85,8 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
    echo 'export GROK_API_KEY="your-api-key-here"' >> ~/.zshrc
    source ~/.zshrc
    ```
+   
+   Get your API key from [console.x.ai](https://console.x.ai)
 
 3. **Using the Improvement Agent (Recommended Workflow):**
    
@@ -70,7 +98,7 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
    - Run the improvement agent:
      ```bash
      cd ~/Code/MyProject
-     python3 ~/Code/MyAIAgent/main.py improve
+     myaiagent improve
      ```
    - The agent will automatically:
      * Detect your project directory (defaults to current directory)
@@ -105,12 +133,12 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
        prompt: "Provide a summary of what was built"
    ```
 
-4. **Run the agent:**
+5. **Run the agent:**
    ```bash
-   python main.py start config/my_first_task.yaml
+   myaiagent start config/my_first_task.yaml
    ```
 
-5. **Monitor progress:** The CLI shows progress, logs, and prompts for approvals on improvements.
+6. **Monitor progress:** The CLI shows progress, logs, and prompts for approvals on improvements.
 
 ---
 
@@ -122,23 +150,23 @@ The agent's core loop:
 
 2. **Log Everything:** All interactions are stored in a local SQLite database (`agent.db`). View logs with:
    ```bash
-   python main.py logs --limit 20
+   myaiagent logs --limit 20
    ```
 
 3. **Self-Review:** After the session completes, the agent automatically meta-prompts the Grok API: "Analyze this log—suggest optimizations like better sequencing, clearer prompts, or improved conditional logic."
 
 4. **Review Improvements:** The agent proposes updates to your YAML configuration. View pending improvements:
    ```bash
-   python main.py improvements
+   myaiagent improvements
    ```
 
 5. **Approve Changes:** Review each suggestion and approve if it looks good:
    ```bash
-   python main.py approve [improvement_id]
+   myaiagent approve [improvement_id]
    ```
    Or reject:
    ```bash
-   python main.py reject [improvement_id]
+   myaiagent reject [improvement_id]
    ```
 
 6. **Iterate:** Rerun with the updated config. Each cycle makes the agent smarter—aim for 3-5 iterations per training session.
@@ -347,7 +375,7 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 - **Run from Project Directory:** Always run the improvement agent from your project directory for best results:
   ```bash
   cd ~/Code/MyProject
-  python3 ~/Code/MyAIAgent/main.py improve
+  myaiagent improve
   ```
 
 ### Troubleshooting
@@ -368,7 +396,7 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 - **Slow Runs:**
   - Reduce sequence length initially
   - Approve optimizations that suggest simplifying prompts
-  - Check logs for bottlenecks: `python main.py logs --limit 50`
+  - Check logs for bottlenecks: `myaiagent logs --limit 50`
 
 - **Agent Stuck in Loop:**
   - Review your conditional logic—ensure there's always an exit condition
@@ -388,9 +416,9 @@ Start small to test basics, then build complexity. Each stage adds layers like c
   - Large projects may need higher budgets (e.g., 200k-500k tokens)
   
 - **Config File Not Found:**
-  - The agent auto-detects config relative to MyAIAgent installation
-  - If running from project directory, config path should be relative to MyAIAgent
-  - Use absolute path if needed: `python3 ~/Code/MyAIAgent/main.py improve ~/Code/MyAIAgent/config/project_improvement.yaml`
+  - The agent auto-detects config files from the package installation
+  - Default configs are automatically found (e.g., `config/project_improvement.yaml`)
+  - You can override with a custom config file path if needed
   
 - **Project Path Issues:**
   - Default project path is current directory (`.`)
@@ -416,8 +444,8 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 
 - **Chain Multiple Config Files:** Run different sequences in sequence:
    ```bash
-   python main.py start config/research.yaml
-   python main.py start config/analysis.yaml
+   myaiagent start config/research.yaml
+   myaiagent start config/analysis.yaml
    ```
 
 - **Export Logs for Analysis:** Query the SQLite database directly:
@@ -433,8 +461,8 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 
 - **Session Management:** Use pause/resume for long-running tasks:
    ```bash
-   python main.py pause   # In another terminal
-   python main.py resume  # When ready to continue
+   myaiagent pause   # In another terminal
+   myaiagent resume  # When ready to continue
    ```
 
 - **Experiment with Models:** Try different Grok models by setting:
@@ -448,7 +476,7 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 
 - Review the main README.md for technical details
 - Check `config/prompts.yaml` for YAML structure examples
-- Examine logs to understand agent behavior: `python main.py logs`
+- Examine logs to understand agent behavior: `myaiagent logs`
 - The agent's self-improvement suggestions often contain hints about best practices
 
 **Happy Training!** 🚀
