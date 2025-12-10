@@ -17,11 +17,17 @@ from typing import Optional, Dict, Any
 import traceback
 
 
+class TokenBudgetExceeded(Exception):
+    """Raised when token budget is exceeded."""
+    pass
+
+
 class APIClient:
-    """Grok (xAI) API client with retry logic and rate limiting."""
+    """Grok (xAI) API client with retry logic, rate limiting, and token budgeting."""
     
     def __init__(self, api_key: str, model: str = "grok-4-latest", max_retries: int = 5,
-                 base_backoff: float = 1.0):
+                 base_backoff: float = 1.0, max_tokens: Optional[int] = None,
+                 warning_threshold: float = 0.80, hard_stop: bool = True):
         """
         Initialize API client.
         
@@ -30,21 +36,54 @@ class APIClient:
             model: Model to use (default: grok-4-latest)
             max_retries: Maximum number of retry attempts
             base_backoff: Base wait time for exponential backoff (seconds)
+            max_tokens: Maximum tokens per session (None = unlimited)
+            warning_threshold: Warning threshold as fraction (0.8 = 80%)
+            hard_stop: Whether to raise exception when budget exceeded
         """
         self.api_key = api_key
         self.model = model
         self.max_retries = max_retries
         self.base_backoff = base_backoff
+        self.max_tokens = max_tokens
+        self.warning_threshold = warning_threshold
+        self.hard_stop = hard_stop
+        self.tokens_used_session = 0
+        self._warning_shown = False
         # Grok API is compatible with OpenAI SDK, just change the base URL
         self.client = openai.OpenAI(
             api_key=api_key,
             base_url="https://api.x.ai/v1"
         )
     
+    def check_budget(self) -> str:
+        """
+        Check if token budget is within limits.
+        
+        Returns:
+            'ok', 'warning', or 'exceeded'
+        """
+        if self.max_tokens is None:
+            return 'ok'
+        
+        usage_percentage = self.tokens_used_session / self.max_tokens
+        
+        if usage_percentage >= 1.0:
+            return 'exceeded'
+        elif usage_percentage >= self.warning_threshold and not self._warning_shown:
+            return 'warning'
+        else:
+            return 'ok'
+    
+    def get_remaining_tokens(self) -> Optional[int]:
+        """Get remaining tokens in budget."""
+        if self.max_tokens is None:
+            return None
+        return max(0, self.max_tokens - self.tokens_used_session)
+    
     def send_prompt(self, prompt: str, system_prompt: Optional[str] = None,
                    temperature: float = 0.7, max_tokens: Optional[int] = None) -> Dict[str, Any]:
         """
-        Send a prompt to the Grok API with retry logic.
+        Send a prompt to the Grok API with retry logic and token budget checking.
         
         Args:
             prompt: User prompt text
@@ -56,8 +95,29 @@ class APIClient:
             Dictionary with 'response', 'model', 'tokens_used', 'error'
             
         Raises:
+            TokenBudgetExceeded: If budget exceeded and hard_stop enabled
             Exception: If all retries fail
         """
+        # Check budget before making API call
+        budget_status = self.check_budget()
+        if budget_status == 'exceeded':
+            if self.hard_stop:
+                raise TokenBudgetExceeded(
+                    f"Token budget exceeded: {self.tokens_used_session}/{self.max_tokens} tokens used"
+                )
+            else:
+                return {
+                    "response": None,
+                    "model": self.model,
+                    "tokens_used": 0,
+                    "error": f"Token budget exceeded: {self.tokens_used_session}/{self.max_tokens} tokens used"
+                }
+        elif budget_status == 'warning':
+            remaining = self.get_remaining_tokens()
+            print(f"\n⚠️  WARNING: Token budget at {self.tokens_used_session}/{self.max_tokens} "
+                  f"({(self.tokens_used_session/self.max_tokens)*100:.1f}%) - {remaining} tokens remaining")
+            self._warning_shown = True
+        
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -74,6 +134,10 @@ class APIClient:
                 
                 response_text = response.choices[0].message.content
                 tokens_used = response.usage.total_tokens if response.usage else None
+                
+                # Track token usage
+                if tokens_used is not None:
+                    self.tokens_used_session += tokens_used
                 
                 return {
                     "response": response_text,

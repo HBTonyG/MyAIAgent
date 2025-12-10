@@ -37,3 +37,7 @@ logs/
 .env
 .env.local
 
+# Generated output files
+output/
+*.pyc
+

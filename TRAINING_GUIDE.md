@@ -46,6 +46,7 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
 
 1. **Install dependencies:**
    ```bash
+   cd ~/Code/MyAIAgent
    pip install -r requirements.txt
    ```
 
@@ -59,7 +60,26 @@ The agent evolves recursively: It uses the AI to analyze its own performance and
    source ~/.zshrc
    ```
 
-3. **Create your first YAML config file** (e.g., `config/my_first_task.yaml`):
+3. **Using the Improvement Agent (Recommended Workflow):**
+   
+   For improving existing projects:
+   - Create your project in Cursor
+   - Add a PRD (Product Requirements Document) to your project
+   - Let Cursor generate the initial code
+   - Open terminal in your project directory
+   - Run the improvement agent:
+     ```bash
+     cd ~/Code/MyProject
+     python3 ~/Code/MyAIAgent/main.py improve
+     ```
+   - The agent will automatically:
+     * Detect your project directory (defaults to current directory)
+     * Read all Cursor-generated files
+     * Analyze code quality
+     * Apply improvements iteratively
+     * Stop when quality threshold is met or token budget reached
+
+4. **Create your first YAML config file** (e.g., `config/my_first_task.yaml`) for prompt sequencing:
    ```yaml
    prompts:
      - id: "step1"
@@ -161,11 +181,11 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 
 - **Browser Actions:** None at first.
 
-- **Training Focus:** Run, log, and approve one improvement (e.g., add error checking conditions).
+- **Training Focus:** Understand the workflow, observe how the agent improves code quality.
 
-- **Expected Outcome:** Agent handles a full app build cycle without manual input.
+- **Expected Outcome:** Agent successfully reads and improves a basic project created by Cursor.
 
-- **Why Start Here:** Low risk; builds trust in the system.
+- **Why Start Here:** Low risk; builds trust in the system and demonstrates the full workflow.
 
 ### Stage 2: Adding Interactivity and Conditionals (2-3 Sessions)
 
@@ -313,11 +333,22 @@ Start small to test basics, then build complexity. Each stage adds layers like c
 ### Best Practices
 
 - **Version Your YAML Files:** Keep versions (e.g., `my_task_v1.yaml`, `my_task_v2.yaml`) so you can roll back if needed.
-- **Monitor API Costs:** Start with free/low-cost tiers. Check usage at console.x.ai regularly.
+- **Monitor API Costs with Token Budgeting:**
+  - The improvement agent includes token budgeting (default: 100,000 tokens per session)
+  - Review token usage after each improvement session
+  - Adjust `max_tokens_per_session` in `config/project_improvement.yaml` as needed
+  - Set lower budgets for testing/experimentation
+  - Check detailed usage at console.x.ai regularly
+- **Use Git Integration:** Enable `git_integration: true` in config for automatic backup commits before changes.
 - **Backup Logs Weekly:** The SQLite database (`agent.db`) contains valuable training data. Back it up.
 - **Ethical Use:** Avoid automating sensitive tasks (e.g., no scraping without permission, no automating social media spam).
 - **Review Improvements Carefully:** Don't approve every suggestion—some might not align with your goals.
 - **Use Descriptive Prompt IDs:** Name your prompt IDs clearly (e.g., `fetch_data`, `process_results`) for easier debugging.
+- **Run from Project Directory:** Always run the improvement agent from your project directory for best results:
+  ```bash
+  cd ~/Code/MyProject
+  python3 ~/Code/MyAIAgent/main.py improve
+  ```
 
 ### Troubleshooting
 
@@ -349,6 +380,23 @@ Start small to test basics, then build complexity. Each stage adds layers like c
   - Run a few sessions to build up training data
   - The agent needs sufficient log data to generate meaningful suggestions
 
+- **Token Budget Exceeded:**
+  - Increase `max_tokens_per_session` in `config/project_improvement.yaml`
+  - Reduce `max_iterations` to complete faster with fewer API calls
+  - Set `hard_stop: false` to continue without stopping (not recommended - may exceed budget)
+  - Review token usage summary at session end to understand consumption
+  - Large projects may need higher budgets (e.g., 200k-500k tokens)
+  
+- **Config File Not Found:**
+  - The agent auto-detects config relative to MyAIAgent installation
+  - If running from project directory, config path should be relative to MyAIAgent
+  - Use absolute path if needed: `python3 ~/Code/MyAIAgent/main.py improve ~/Code/MyAIAgent/config/project_improvement.yaml`
+  
+- **Project Path Issues:**
+  - Default project path is current directory (`.`)
+  - Use `--project-path` argument to specify a different directory
+  - Ensure you're in the project directory when running, or specify it explicitly
+  
 - **YAML Syntax Errors:**
   - Validate your YAML with an online validator
   - Check indentation (YAML is sensitive to spacing)

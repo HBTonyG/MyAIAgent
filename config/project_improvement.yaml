@@ -1,0 +1,32 @@
+# Configuration for iterative project improvement
+
+project:
+  path: "."  # Project root path (relative to where command is run)
+  file_patterns: ["*.html", "*.css", "*.js", "*.jsx", "*.tsx"]  # Files to analyze
+
+quality:
+  threshold: 85  # Target quality score (0-100)
+  criteria:
+    - accessibility
+    - user_experience
+    - performance
+    - code_style
+
+iteration:
+  max_iterations: 5  # Maximum improvement iterations
+  convergence_threshold: 2  # Stop if no improvement for N iterations
+  auto_improve: true  # Automatically apply improvements
+
+safety:
+  git_integration: true  # Use git for safety (backup commits)
+  backup_before_changes: true  # Create backup before applying changes
+
+testing:
+  enabled: true  # Enable testing between iterations
+  browser_tests: false  # Test in browser (requires local server)
+
+token_budget:
+  max_tokens_per_session: 100000  # Default: 100k tokens
+  warning_threshold: 0.80  # Warn at 80% of budget
+  hard_stop: true  # Stop execution when budget exceeded
+

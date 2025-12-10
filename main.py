@@ -37,6 +37,8 @@ from typing import Optional
 from agent import Agent
 from database import Database
 from config_parser import ConfigParser
+from improvement_engine import ImprovementEngine
+from api_client import APIClient
 
 
 def load_config() -> dict:
@@ -245,6 +247,171 @@ def cmd_resume(args):
         db.close()
 
 
+def _find_myaiagent_dir():
+    """Find MyAIAgent installation directory."""
+    # Get the directory where main.py is located
+    main_py_path = os.path.abspath(__file__)
+    myaiagent_dir = os.path.dirname(main_py_path)
+    return myaiagent_dir
+
+
+def cmd_improve(args):
+    """Run iterative improvement on a project."""
+    config = load_config()
+    
+    if not config.get('api_key'):
+        print("Error: GROK_API_KEY or XAI_API_KEY not set.")
+        sys.exit(1)
+    
+    # Resolve config file path
+    config_file = args.config_file or 'config/project_improvement.yaml'
+    
+    # If config file not found, try relative to MyAIAgent directory
+    if not os.path.exists(config_file):
+        myaiagent_dir = _find_myaiagent_dir()
+        potential_config = os.path.join(myaiagent_dir, config_file)
+        if os.path.exists(potential_config):
+            config_file = potential_config
+        elif not os.path.exists(config_file):
+            # Try default path relative to MyAIAgent
+            default_config = os.path.join(myaiagent_dir, 'config', 'project_improvement.yaml')
+            if os.path.exists(default_config):
+                config_file = default_config
+            else:
+                print(f"Error: Config file not found: {config_file}")
+                print(f"Tried: {config_file}")
+                print(f"Tried: {potential_config}")
+                print(f"Tried: {default_config}")
+                print("Create a config file or use the example: config/project_improvement.yaml")
+                sys.exit(1)
+    
+    # Load improvement config
+    import yaml
+    with open(config_file, 'r') as f:
+        improve_config = yaml.safe_load(f) or {}
+    
+    # Determine project path: command-line argument takes precedence, then config, then current directory
+    if hasattr(args, 'project_path') and args.project_path:
+        project_path = os.path.abspath(args.project_path)
+    else:
+        project_path = improve_config.get('project', {}).get('path', '.')
+        project_path = os.path.abspath(project_path)
+    
+    # Extract token budget settings
+    token_budget_config = improve_config.get('token_budget', {})
+    max_tokens = token_budget_config.get('max_tokens_per_session')
+    warning_threshold = token_budget_config.get('warning_threshold', 0.80)
+    hard_stop = token_budget_config.get('hard_stop', True)
+    
+    # Initialize components
+    db = Database()
+    api_client = APIClient(
+        config['api_key'],
+        model=config.get('model', 'grok-4-latest'),
+        max_tokens=max_tokens,
+        warning_threshold=warning_threshold,
+        hard_stop=hard_stop
+    )
+    
+    # Create session
+    import uuid
+    session_id = str(uuid.uuid4())
+    db.create_session(session_id, config_file)
+    
+    try:
+        print(f"Starting improvement session: {session_id}")
+        print(f"Project path: {project_path}")
+        print(f"Quality threshold: {improve_config.get('quality', {}).get('threshold', 85)}")
+        
+        # Display token budget info
+        if max_tokens:
+            print(f"Token Budget: {max_tokens:,} tokens")
+            print(f"Warning at: {warning_threshold*100:.0f}% ({int(max_tokens * warning_threshold):,} tokens)")
+            print(f"Hard stop: {'Enabled' if hard_stop else 'Disabled'}")
+        
+        # Git safety check
+        if improve_config.get('safety', {}).get('git_integration', True):
+            _git_safety_check(project_path)
+        
+        # Run improvement loop
+        engine = ImprovementEngine(api_client, db, project_path)
+        results = engine.run_improvement_loop(session_id, improve_config)
+        
+        # Print results
+        print(f"\n{'='*60}")
+        print("Improvement Complete")
+        print(f"{'='*60}")
+        print(f"Final Score: {results['final_score']}/100")
+        print(f"Threshold Met: {results['threshold_met']}")
+        print(f"Iterations: {len(results['iterations'])}")
+        
+        if results.get('budget_exceeded'):
+            print(f"\n⚠️  Session stopped due to token budget limit")
+        
+        if results['iterations']:
+            print("\nIteration Summary:")
+            for iter_result in results['iterations']:
+                print(f"  Iteration {iter_result['iteration']}: "
+                      f"{iter_result['score_before']} -> {iter_result['score_after']} "
+                      f"({iter_result['improvements']} improvements, "
+                      f"{len(iter_result['files_modified'])} files modified)")
+        
+        # Display final token usage summary
+        if max_tokens:
+            print(f"\nToken Usage Summary:")
+            print(f"  Total used: {api_client.tokens_used_session:,}/{max_tokens:,} tokens")
+            if api_client.tokens_used_session > 0:
+                usage_pct = (api_client.tokens_used_session / max_tokens) * 100
+                print(f"  Percentage: {usage_pct:.1f}%")
+                remaining = api_client.get_remaining_tokens()
+                print(f"  Remaining: {remaining:,} tokens")
+        
+        status = "budget_exceeded" if results.get('budget_exceeded') else "completed"
+        db.update_session_status(session_id, status)
+        
+    finally:
+        db.close()
+
+
+def _git_safety_check(project_path: str):
+    """Check git status and create backup commit."""
+    import subprocess
+    
+    # Check if git repo
+    git_dir = os.path.join(project_path, '.git')
+    if not os.path.exists(git_dir):
+        print("Warning: Not a git repository. Changes cannot be rolled back.")
+        response = input("Continue anyway? (y/n): ")
+        if response.lower() != 'y':
+            sys.exit(0)
+        return
+    
+    # Check for uncommitted changes
+    try:
+        result = subprocess.run(
+            ['git', 'status', '--porcelain'],
+            cwd=project_path,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.stdout.strip():
+            print("Warning: Uncommitted changes detected.")
+            response = input("Create backup commit before improvements? (y/n): ")
+            if response.lower() == 'y':
+                subprocess.run(
+                    ['git', 'add', '.'],
+                    cwd=project_path
+                )
+                subprocess.run(
+                    ['git', 'commit', '-m', 'Backup before AI agent improvements'],
+                    cwd=project_path
+                )
+                print("✓ Backup commit created")
+    except Exception as e:
+        print(f"Git check warning: {str(e)}")
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -285,6 +452,14 @@ def main():
     # Resume command
     resume_parser = subparsers.add_parser('resume', help='Resume paused session')
     resume_parser.set_defaults(func=cmd_resume)
+    
+    # Improve command (new iterative improvement feature)
+    improve_parser = subparsers.add_parser('improve', help='Run iterative code improvement on project')
+    improve_parser.add_argument('config_file', nargs='?',
+                                help='Path to improvement config file (default: config/project_improvement.yaml)')
+    improve_parser.add_argument('--project-path', type=str, default=None,
+                                help='Path to project directory (default: current directory or value from config)')
+    improve_parser.set_defaults(func=cmd_improve)
     
     args = parser.parse_args()
     
